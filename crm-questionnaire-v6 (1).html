@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>אפיון מערכת CRM</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════
+   TOKENS — Light Mode
+══════════════════════════════════════ */
+:root {
+  --bg:           #f8fafc;
+  --surface:      #ffffff;
+  --surface-2:    #f1f5f9;
+  --surface-3:    #e8edf5;
+  --border:       #e2e8f0;
+  --border-focus: #2563eb;
+  --navy:         #0f172a;
+  --slate-700:    #334155;
+  --slate-500:    #64748b;
+  --slate-400:    #94a3b8;
+  --blue:         #2563eb;
+  --blue-light:   #eff6ff;
+  --blue-hover:   #1d4ed8;
+  --green:        #059669;
+  --green-light:  #ecfdf5;
+  --amber:        #d97706;
+  --amber-light:  #fffbeb;
+  --red-light:    #fef2f2;
+  --shadow-sm:    0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:    0 4px 16px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.04);
+  --shadow-card:  0 20px 50px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+  --radius-xl:    18px;
+  --radius-lg:    12px;
+  --radius-md:    8px;
+  --font:         'Heebo', 'Segoe UI', Arial, sans-serif;
+}
+
+/* ══════════════════════════════════════
+   RESET & BASE
+══════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 1.6;
+  direction: rtl;
+  background: var(--bg);
+  min-height: 100vh;
+  padding: 32px 16px;
+  color: var(--navy);
+}
+
+/* Thin progress line */
+#top-bar { position: fixed; top: 0; right: 0; left: 0; height: 3px; z-index: 999; background: var(--border); }
+#top-bar-fill {
+  height: 100%;
+  background: var(--blue);
+  transition: width 0.5s cubic-bezier(.4,0,.2,1);
+}
+
+.container { max-width: 680px; margin: 0 auto; }
+
+/* ══════════════════════════════════════
+   TYPOGRAPHY
+══════════════════════════════════════ */
+h1 { font-size: clamp(22px, 4vw, 28px); font-weight: 800; color: var(--navy); line-height: 1.3; }
+h2 { font-size: 18px; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 8px; }
+h3 { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+.subtitle { color: var(--slate-500); font-size: 15px; font-weight: 300; margin-top: 6px; line-height: 1.6; }
+.eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--blue); margin-bottom: 4px;
+}
+
+/* ══════════════════════════════════════
+   CARDS & SURFACES
+══════════════════════════════════════ */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.card-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 24px 40px;
+}
+.card-body { padding: 40px; }
+
+.glass {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  padding: 28px;
+  margin-bottom: 12px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.glass:hover { box-shadow: var(--shadow-md); border-color: #cbd5e1; }
+
+/* ══════════════════════════════════════
+   FORM ELEMENTS
+══════════════════════════════════════ */
+.label {
+  display: block;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 10px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+input[type=text], textarea, select {
+  width: 100%;
+  padding: 13px 16px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid transparent;
+  background: var(--surface-2);
+  color: var(--navy);
+  font-size: 15px;
+  font-family: var(--font);
+  font-weight: 400;
+  line-height: 1.6;
+  outline: none;
+  direction: rtl;
+  transition: all 0.18s ease;
+}
+input[type=text]::placeholder, textarea::placeholder { color: var(--slate-400); }
+input[type=text]:focus, textarea:focus, select:focus {
+  background: var(--surface);
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+input[type=text]:hover:not(:focus), textarea:hover:not(:focus), select:hover:not(:focus) {
+  background: #edf2f7;
+}
+textarea { resize: vertical; line-height: 1.7; min-height: 110px; }
+select option { background: var(--surface); color: var(--navy); }
+
+/* ══════════════════════════════════════
+   CHIPS
+══════════════════════════════════════ */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 7px 16px;
+  border-radius: 100px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--slate-700);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: all 0.16s ease;
+  user-select: none;
+  box-shadow: var(--shadow-sm);
+}
+.chip:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: var(--blue-light);
+  box-shadow: var(--shadow-md);
+}
+.chip.active {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+}
+
+/* ══════════════════════════════════════
+   QUESTION ANIMATION
+══════════════════════════════════════ */
+.q-group { display: flex; flex-direction: column; gap: 32px; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.q-item { animation: none; }
+.animate-in .q-item { animation: fadeInUp 0.3s ease both; }
+.animate-in .q-item:nth-child(1) { animation-delay: 0.03s; }
+.animate-in .q-item:nth-child(2) { animation-delay: 0.08s; }
+.animate-in .q-item:nth-child(3) { animation-delay: 0.13s; }
+.animate-in .q-item:nth-child(4) { animation-delay: 0.18s; }
+.animate-in .q-item:nth-child(5) { animation-delay: 0.23s; }
+.animate-in .q-item:nth-child(6) { animation-delay: 0.28s; }
+.animate-in .q-item:nth-child(7) { animation-delay: 0.33s; }
+
+/* ══════════════════════════════════════
+   BUTTONS
+══════════════════════════════════════ */
+.btn {
+  padding: 11px 24px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-family: var(--font);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  border: none;
+  line-height: 1;
+}
+.btn-primary {
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+}
+.btn-primary:hover {
+  background: var(--blue-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(37,99,235,0.3);
+}
+.btn-primary:active { transform: translateY(0); }
+.btn-success {
+  background: var(--green);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(5,150,105,0.25);
+}
+.btn-success:hover {
+  background: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(5,150,105,0.3);
+}
+.btn-outline {
+  background: var(--surface);
+  color: var(--slate-700);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.btn-outline:hover {
+  border-color: #94a3b8;
+  color: var(--navy);
+  box-shadow: var(--shadow-md);
+}
+.btn-large { padding: 13px 40px; font-size: 15px; border-radius: var(--radius-lg); }
+.btn-ghost {
+  background: transparent; border: none;
+  color: var(--slate-500); font-size: 14px; font-weight: 500;
+  cursor: pointer; font-family: var(--font);
+  transition: color 0.15s; padding: 4px 0;
+}
+.btn-ghost:hover { color: var(--blue); }
+
+/* ══════════════════════════════════════
+   NAV
+══════════════════════════════════════ */
+.nav {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 40px; padding-top: 28px;
+  border-top: 1px solid var(--border);
+}
+
+/* ══════════════════════════════════════
+   STEP PILLS
+══════════════════════════════════════ */
+.step-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+.pill {
+  padding: 5px 12px; border-radius: 100px; font-size: 11px; font-weight: 600;
+  display: flex; align-items: center; gap: 4px;
+  transition: all 0.15s; cursor: default; letter-spacing: 0.2px;
+  border: 1.5px solid transparent;
+}
+.pill.done {
+  background: var(--green-light); color: var(--green);
+  border-color: #a7f3d0; cursor: pointer;
+}
+.pill.done:hover { background: #d1fae5; }
+.pill.active {
+  background: var(--blue); color: #fff;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+}
+.pill.todo { background: var(--surface-2); color: var(--slate-400); border-color: var(--border); }
+
+/* ══════════════════════════════════════
+   INFO & BADGES
+══════════════════════════════════════ */
+.info-row { display: flex; gap: 16px; align-items: baseline; margin-bottom: 12px; font-size: 15px; }
+.info-label { color: var(--slate-400); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; }
+.info-value { color: var(--navy); font-weight: 400; }
+.challenge-item { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px; }
+.challenge-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--blue); flex-shrink: 0; margin-top: 9px;
+}
+
+.topic-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: 100px;
+  background: var(--blue-light); border: 1px solid #bfdbfe;
+  color: var(--blue); font-size: 12px; font-weight: 500; margin: 3px;
+}
+
+/* ══════════════════════════════════════
+   FEATURE GRID
+══════════════════════════════════════ */
+.feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.feature-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 12px 14px;
+  font-size: 14px; color: var(--slate-700);
+}
+
+/* ══════════════════════════════════════
+   RESULT & STATUS
+══════════════════════════════════════ */
+.result-header {
+  background: var(--green-light);
+  border-bottom: 1px solid #a7f3d0;
+  padding: 36px 40px; text-align: center;
+}
+.result-header h2 { color: #065f46; font-size: 20px; justify-content: center; }
+.result-header p { color: var(--green); font-size: 15px; font-weight: 300; margin-top: 4px; }
+
+.action-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.status-box {
+  padding: 14px 16px; border-radius: var(--radius-md); margin-bottom: 16px;
+  display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500;
+  animation: fadeInUp 0.25s ease both;
+}
+.status-sending { background: var(--amber-light); color: var(--amber); border: 1px solid #fde68a; }
+.status-success  { background: var(--green-light); color: var(--green); border: 1px solid #a7f3d0; }
+.status-error    { background: var(--red-light); color: #dc2626; border: 1px solid #fecaca; }
+
+.stat-box {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 18px; text-align: center;
+}
+.stat-label { color: var(--slate-400); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.stat-value { font-size: 22px; font-weight: 800; color: var(--navy); }
+
+.unanswered-box {
+  background: var(--amber-light); border: 1px solid #fde68a;
+  border-radius: var(--radius-md); padding: 16px; margin-top: 12px;
+}
+.unanswered-item {
+  color: #92400e; font-size: 14px;
+  border-right: 3px solid #fbbf24;
+  padding: 4px 10px; margin-bottom: 6px;
+}
+.all-answered {
+  background: var(--green-light); border: 1px solid #a7f3d0;
+  border-radius: var(--radius-md); padding: 12px 16px;
+  color: var(--green); font-weight: 600; margin-top: 12px; font-size: 15px;
+}
+
+/* Backup banner */
+.backup-banner {
+  background: var(--blue-light); border: 1px solid #bfdbfe;
+  border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; text-align: center;
+}
+
+.divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+.spinner {
+  width: 15px; height: 15px; border: 2px solid currentColor;
+  border-top-color: transparent; border-radius: 50%;
+  animation: spin 0.7s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.hidden { display: none; }
+
+/* ══════════════════════════════════════
+   PDF TEMPLATE
+══════════════════════════════════════ */
+#pdf-template {
+  display: none; direction: rtl;
+  font-family: 'Heebo', Arial, sans-serif;
+  background: #fff; padding: 0; width: 210mm; color: #1e293b;
+}
+.pdf-cover { background: linear-gradient(135deg, #0f172a, #1e3a5f); padding: 60px 50px; min-height: 297mm; display: flex; flex-direction: column; justify-content: space-between; }
+.pdf-cover-logo { font-size: 64px; margin-bottom: 20px; }
+.pdf-cover-title { color: #fff; font-size: 32px; font-weight: 800; margin-bottom: 8px; }
+.pdf-cover-sub { color: #93c5fd; font-size: 18px; margin-bottom: 40px; }
+.pdf-cover-client { background: rgba(255,255,255,0.1); border-radius: 16px; padding: 28px; border: 1px solid rgba(255,255,255,0.2); }
+.pdf-cover-client h3 { color: #60a5fa; font-size: 13px; letter-spacing: 2px; margin-bottom: 16px; }
+.pdf-cover-meta { color: #fff; font-size: 16px; margin-bottom: 10px; }
+.pdf-cover-meta span { color: #94a3b8; font-size: 14px; }
+.pdf-cover-footer { color: #475569; font-size: 13px; margin-top: 20px; }
+.pdf-cover-badges { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.pdf-cover-badge { background: rgba(59,130,246,0.2); border: 1px solid rgba(59,130,246,0.4); color: #93c5fd; padding: 6px 14px; border-radius: 20px; font-size: 12px; }
+.pdf-page { padding: 40px 50px; page-break-inside: avoid; }
+.pdf-section-header { display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #1e3a5f, #1e40af); color: #fff; padding: 16px 24px; border-radius: 12px; margin-bottom: 20px; margin-top: 30px; }
+.pdf-section-icon { font-size: 24px; }
+.pdf-section-title { font-size: 18px; font-weight: 700; }
+.pdf-qa { margin-bottom: 18px; page-break-inside: avoid; }
+.pdf-question { font-weight: 600; color: #334155; font-size: 14px; margin-bottom: 6px; }
+.pdf-answer { background: #f8fafc; border-right: 4px solid #2563eb; padding: 10px 16px; border-radius: 0 8px 8px 0; color: #1e293b; font-size: 14px; line-height: 1.7; white-space: pre-wrap; }
+.pdf-answer.empty { color: #94a3b8; font-style: italic; background: #fafafa; border-right-color: #e2e8f0; }
+.pdf-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.pdf-meta-box { background: #f1f5f9; border-radius: 10px; padding: 16px; }
+.pdf-meta-label { color: #64748b; font-size: 12px; margin-bottom: 4px; }
+.pdf-meta-value { font-size: 18px; font-weight: 700; color: #1e293b; }
+.pdf-unanswered { background: #fef9c3; border: 2px solid #fde047; border-radius: 12px; padding: 20px; margin-top: 20px; }
+.pdf-unanswered h3 { color: #854d0e; margin-bottom: 12px; }
+.pdf-unanswered-item { color: #92400e; font-size: 13px; border-right: 3px solid #fbbf24; padding: 4px 10px; margin-bottom: 6px; }
+.pdf-divider { border: none; border-top: 2px solid #e2e8f0; margin: 24px 0; }
+.pdf-footer { color: #94a3b8; font-size: 11px; text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
+</style>
+</head>
+<body>
+
+<!-- TOP PROGRESS BAR -->
+<div id="top-bar"><div id="top-bar-fill" style="width:0%"></div></div>
+
+<!-- ─── APP ─────────────────────────────────────────── -->
+<div class="container" id="app">
+  <!-- Screens rendered by JS -->
+</div>
+
+<!-- ─── PDF TEMPLATE (hidden, used for generation) ─── -->
+<div id="pdf-template"></div>
+
+<script>
+// ════════════════════════════════════════════════════
+//  CONFIG  — עדכן את הכתובת של ה-n8n Webhook שלך
+// ════════════════════════════════════════════════════
+const N8N_WEBHOOK_URL = "https://elishamaf.app.n8n.cloud/webhook/crm-form";
+const RECIPIENT_EMAIL = "ELISHAMA1324@GMAIL.COM";
+
+// ════════════════════════════════════════════════════
+//  DATA
+// ════════════════════════════════════════════════════
+const KNOWN_INFO = {
+  challenges: [
+    "ניהול הזמנות לקוחות מרובות במקביל",
+    "מעקב הצעות מחיר לספקים + תזכורות",
+    "עדכון תקופתי של לקוחות על סטטוס הזמנה",
+    "ניהול גרסאות שונות של הצעות מחיר",
+    "מעקב מיילים שנשלחו (האם התקבלו / נענו)",
+    "עבודה מול עמילי מכס",
+    "קיטלוג מסמכים לפי לקוח ופריט",
+  ]
+};
+
+const STEPS = [
+  {
+    id: "updates", title: "עדכונים ותזכורות", icon: "🔔",
+    questions: [
+      { id: "customer_update_freq", label: "כמה פעמים בשבוע/חודש את מעדכנת לקוחות על סטטוס הזמנה?", type: "select", options: ["כל יום","פעמיים בשבוע","פעם בשבוע","פעם בשבועיים","רק כשיש עדכון"] },
+      { id: "update_method", label: "איך את בדרך כלל מעדכנת לקוחות?", type: "chips", options: ["מייל","וואטסאפ","טלפון","הלקוח פונה אליי"] },
+      { id: "update_content", label: "מה בדרך כלל כולל העדכון ללקוח?", type: "chips", options: ["סטטוס הזמנה","תאריך אספקה צפוי","מיקום המשלוח","עיכובים","מסמכים","אחר"] },
+      { id: "auto_update", label: "האם תשמחי שהמערכת תשלח עדכון אוטומטי ללקוח פעם בשבוע?", type: "select", options: ["כן, זה יחסוך לי הרבה זמן","כן, אבל רוצה לאשר לפני שליחה","לא, אני רוצה לשלוח בעצמי","תלוי בלקוח"] },
+      { id: "boss_followup", label: "הבוס מבקש לפעמים לעקוב אחרי מיילים מסוימים — איך זה עובד כיום?", type: "textarea", placeholder: "לדוגמה: הוא שולח לי הודעה שאבדוק אם ספק X ענה..." },
+      { id: "missed_followup", label: "האם קרה שפספסת מעקב על מייל חשוב?", type: "select", options: ["לא","פעם אחת","כמה פעמים","קורה לעיתים קרובות"] },
+    ]
+  },
+  {
+    id: "quotes", title: "הצעות מחיר לספקים", icon: "💰",
+    questions: [
+      { id: "quote_open", label: "כמה הצעות מחיר פתוחות (שממתינות לתשובה) יש לך בממוצע בכל רגע?", type: "select", options: ["1-3","4-10","11-20","יותר מ-20"] },
+      { id: "quote_wait", label: "כמה זמן בממוצע לוקח לספק לחזור עם הצעה?", type: "select", options: ["עד 24 שעות","1-3 ימים","שבוע","יותר משבוע","תלוי בספק"] },
+      { id: "quote_track", label: "כיצד את עוקבת כיום אחרי ספקים שלא ענו?", type: "textarea", placeholder: "לדוגמה: תזכורת בטלפון, מסמנת באקסל..." },
+      { id: "quote_remind_time", label: "אחרי כמה זמן ללא תשובה את שולחת תזכורת לספק?", type: "select", options: ["יום אחד","2-3 ימים","שבוע","תלוי בדחיפות"] },
+      { id: "quote_auto_remind", label: "האם תשמחי שהמערכת תתריע כשספק לא ענה?", type: "select", options: ["כן, בהחלט!","כן, אבל אני שולחת בעצמי","לא צריך"] },
+      { id: "quote_multi", label: "האם לאותו פריט את שולחת לכמה ספקים במקביל?", type: "select", options: ["כן, תמיד","לפעמים","לא, בדרך כלל ספק אחד"] },
+      { id: "quote_compare", label: "כשיש כמה הצעות לאותו פריט — איך את משווה ביניהן?", type: "textarea", placeholder: "לדוגמה: מעתיקה לאקסל ומשווה ידנית..." },
+    ]
+  },
+  {
+    id: "versions", title: "גרסאות ושינויים", icon: "🔀",
+    questions: [
+      { id: "ver_freq", label: "כמה פעמים הלקוח משנה דרישה אחרי שכבר ביקשת הצעת מחיר?", type: "select", options: ["כמעט אף פעם","לפעמים (20-30%)","לעיתים קרובות","כמעט תמיד"] },
+      { id: "ver_what", label: "מה בדרך כלל משתנה?", type: "chips", options: ["כמות","מפרט טכני","צבע / חומר","תאריך אספקה","כתובת משלוח","מחיר מבוקש","אחר"] },
+      { id: "ver_manage", label: "כיצד את מנהלת כיום את הגרסאות השונות?", type: "textarea", placeholder: "לדוגמה: שומרת כל מייל, כותבת בצד באקסל..." },
+      { id: "ver_mistake", label: "האם קרה שנשלחה הצעת מחיר לפי גרסה ישנה בטעות?", type: "select", options: ["לא","פעם אחת","כמה פעמים","כן, זה קורה"] },
+      { id: "ver_ideal", label: "מה האידיאל שלך לניהול גרסאות?", type: "textarea", placeholder: "לדוגמה: לראות את כל הגרסאות של אותה הזמנה בטור אחד..." },
+    ]
+  },
+  {
+    id: "catalog", title: "קיטלוג ומסמכים", icon: "📁",
+    questions: [
+      { id: "cat_structure", label: "כיום, לפי מה מאורגן המידע שלך?", type: "chips", options: ["לפי לקוח","לפי ספק","לפי תאריך","לפי סוג מוצר","לפי סטטוס","לא ממש מאורגן"] },
+      { id: "cat_files", label: "איפה שמורים כיום המסמכים?", type: "chips", options: ["Gmail / Outlook","Google Drive","Dropbox","תיקיות במחשב","מדפסת / נייר","לא מאורגן"] },
+      { id: "cat_search", label: "כמה קל למצוא מסמך ישן כשצריך?", type: "select", options: ["קל מאוד, יש לי סדר","אפשרי אבל לוקח זמן","קשה, אני מחפשת הרבה","לפעמים לא מוצאת בכלל"] },
+      { id: "cat_items", label: "האם יש מוצרים חוזרים? האם יש מחירון קיים?", type: "textarea", placeholder: "לדוגמה: יש כמה פריטים שלקוחות מזמינים תמיד..." },
+    ]
+  },
+  {
+    id: "process", title: "תהליך עבודה", icon: "🔄",
+    questions: [
+      { id: "order_flow", label: "תארי את מסע ההזמנה משלב הכניסה עד מסירה ללקוח:", type: "textarea", placeholder: "לדוגמה:\n1. לקוח שולח בקשה במייל\n2. אני מבינה מה הוא רוצה\n3. שולחת לספקים\n4. מחזירה ללקוח\n5. לאחר אישור — מזמינה\n6. מעקב שילוח\n7. עמיל מכס\n8. מסירה" },
+      { id: "open_orders", label: "כמה הזמנות פתוחות במקביל בממוצע?", type: "select", options: ["1-5","6-15","16-30","יותר מ-30"] },
+      { id: "customs_flow", label: "תארי את העבודה מול עמילי המכס:", type: "textarea", placeholder: "לדוגמה: שולחת להם מסמכי שילוח, הם מעדכנים אותי..." },
+      { id: "biggest_pain", label: "מה הכי מתסכל אותך כיום?", type: "textarea", placeholder: "כתבי בחופשיות..." },
+    ]
+  },
+  {
+    id: "system", title: "ציפיות מהמערכת", icon: "🎯",
+    questions: [
+      { id: "must_have", label: "מה חייב להיות במערכת כבר מהיום הראשון? (Version 1)", type: "textarea", placeholder: "הדברים שבלעדיהם המערכת לא שימושית..." },
+      { id: "nice_to_have", label: "מה יהיה נחמד אבל אפשר להוסיף אחר כך?", type: "textarea", placeholder: "פיצ'רים לעתיד..." },
+      { id: "sys_users", label: "מי ישתמש במערכת?", type: "chips", options: ["רק אני","הבוס שלי","עוד עובדים","הלקוחות עצמם (פורטל לקוח)"] },
+      { id: "mobile", label: "האם חשוב שיעבוד בנייד?", type: "select", options: ["לא, רק מחשב","נחמד לו יש","חשוב","קריטי — אני בעיקר על הנייד"] },
+      { id: "extra", label: "יש עוד משהו שחשוב לך שנדע?", type: "textarea", placeholder: "כל דבר שלא שאלנו..." },
+    ]
+  }
+];
+
+// ════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════
+const STORAGE_KEY = 'crm_form_backup';
+
+function saveBackup() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      answers: state.answers,
+      startTime: state.startTime,
+      savedAt: Date.now()
+    }));
+  } catch(e) {}
+}
+function loadBackup() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    // Only restore if saved less than 24 hours ago
+    if (Date.now() - data.savedAt < 86400000) return data;
+  } catch(e) {}
+  return null;
+}
+function clearBackup() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+}
+
+let state = {
+  screen: 'intro',
+  step: 0,
+  answers: {},
+  startTime: null,
+  endTime: null,
+  emailStatus: 'idle',
+  hasBackup: false
+};
+
+// Check for saved backup on load
+const backup = loadBackup();
+if (backup && Object.keys(backup.answers).length > 0) {
+  state.hasBackup = true;
+  state._backupData = backup;
+}
+
+function setState(patch) {
+  Object.assign(state, patch);
+  // Auto-save on every state change if in quiz
+  if (state.screen === 'quiz' || state.screen === 'result') saveBackup();
+  render();
+}
+
+// ════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════
+function getVal(id) {
+  const v = state.answers[id];
+  if (Array.isArray(v)) return v.length ? v.join(", ") : null;
+  return v || null;
+}
+function setAnswer(id, val, skipRender = false) {
+  state.answers[id] = val;
+  saveBackup(); // auto-backup on every keystroke
+  if (!skipRender) render();
+}
+function toggleChip(id, opt) {
+  const cur = Array.isArray(state.answers[id]) ? state.answers[id] : [];
+  state.answers[id] = cur.includes(opt) ? cur.filter(x=>x!==opt) : [...cur, opt];
+  saveBackup();
+  // Update only the chips DOM, no full re-render
+  const chips = document.querySelectorAll('[data-chip-group="' + id + '"] .chip');
+  chips.forEach(btn => {
+    const isActive = state.answers[id].includes(btn.dataset.chipVal);
+    btn.classList.toggle('active', isActive);
+    btn.textContent = (isActive ? '✓ ' : '') + btn.dataset.chipVal;
+  });
+}
+function formatTime(ms) {
+  const totalSec = Math.round(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return min > 0 ? `${min} דקות ו-${sec} שניות` : `${sec} שניות`;
+}
+function getUnanswered() {
+  const result = [];
+  STEPS.forEach(s => {
+    s.questions.forEach(q => {
+      const v = state.answers[q.id];
+      const isEmpty = !v || (Array.isArray(v) && v.length === 0) || v === "";
+      if (isEmpty) result.push({ step: s.title, icon: s.icon, question: q.label });
+    });
+  });
+  return result;
+}
+
+
+// ════════════════════════════════════════════════════
+//  SUMMARY GENERATOR — מסמך סיכום ללקוח
+// ════════════════════════════════════════════════════
+function nl2br(str) { return (str || '').split('\n').join('<br>'); }
+function generateSummaryHtml(forEmail = false) {
+  const g = (id) => getVal(id) || '—';
+  const date = new Date().toLocaleDateString('he-IL', { year:'numeric', month:'long', day:'numeric' });
+
+  // Build automated recommendations based on answers
+  const recs = [];
+  
+  // Updates automation
+  if (g('auto_update').includes('כן')) recs.push({ icon: '🔔', text: 'עדכון אוטומטי שבועי ללקוחות', priority: 'חובה' });
+  if (g('missed_followup') !== 'לא') recs.push({ icon: '📧', text: 'מעקב מיילים + תזכורות אוטומטיות', priority: 'חובה' });
+  
+  // Quotes
+  if (g('quote_auto_remind').includes('כן')) recs.push({ icon: '⏰', text: `תזכורת אוטומטית לספק לאחר ${g('quote_remind_time')}`, priority: 'חובה' });
+  if (g('quote_multi') !== 'לא, בדרך כלל ספק אחד') recs.push({ icon: '📊', text: 'השוואת הצעות מחיר מספקים מרובים', priority: 'חשוב' });
+  
+  // Versions
+  if (!g('ver_freq').includes('כמעט אף פעם')) recs.push({ icon: '🔀', text: 'ניהול גרסאות לכל הזמנה (version control)', priority: 'חובה' });
+  if (g('ver_mistake') !== 'לא') recs.push({ icon: '⚠️', text: 'סימון גרסה פעילה למניעת שגיאות', priority: 'חובה' });
+  
+  // Catalog
+  if (g('cat_search').includes('קשה') || g('cat_search').includes('לא מוצאת')) recs.push({ icon: '🔍', text: 'מנוע חיפוש מסמכים מרכזי', priority: 'חשוב' });
+  
+  // Mobile
+  if (g('mobile').includes('חשוב') || g('mobile').includes('קריטי')) recs.push({ icon: '📱', text: 'ממשק מותאם לנייד', priority: 'חובה' });
+  
+  // Users
+  if (g('sys_users').includes('הבוס')) recs.push({ icon: '👔', text: 'דשבורד סיכום למנהל', priority: 'חשוב' });
+  if (g('sys_users').includes('פורטל לקוח')) recs.push({ icon: '🌐', text: 'פורטל לקוח עצמאי', priority: 'עתידי' });
+
+  const cardStyle = forEmail 
+    ? 'background:#f8fafc;border-radius:10px;padding:16px 20px;margin-bottom:12px;border-right:4px solid #3b82f6;'
+    : 'background:#f8fafc;border-radius:10px;padding:16px 20px;margin-bottom:12px;border-right:4px solid #3b82f6;';
+
+  const recBadge = (p) => {
+    const colors = { 'חובה': '#dc2626', 'חשוב': '#d97706', 'עתידי': '#6b7280' };
+    const bg = { 'חובה': '#fef2f2', 'חשוב': '#fffbeb', 'עתידי': '#f9fafb' };
+    return `<span style="background:${bg[p]};color:${colors[p]};border:1px solid ${colors[p]};padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;">${p}</span>`;
+  };
+
+  return `
+  <div style="direction:rtl;font-family:'Segoe UI',Tahoma,sans-serif;background:#fff;">
+    
+    <!-- SUMMARY HEADER -->
+    <div style="background:linear-gradient(135deg,#1e3a5f,#1e40af);padding:40px 50px;color:#fff;">
+      <div style="font-size:13px;letter-spacing:2px;color:#93c5fd;margin-bottom:8px;">סיכום אפיון</div>
+      <div style="font-size:28px;font-weight:800;margin-bottom:6px;">מה המערכת שלך צריכה לכלול</div>
+      <div style="color:#bfdbfe;font-size:14px;">${date} | נוצר על בסיס השאלון שמילאת</div>
+    </div>
+
+    <div style="padding:40px 50px;">
+
+      <!-- PAIN POINTS -->
+      <div style="margin-bottom:36px;">
+        <div style="font-size:18px;font-weight:800;color:#1e293b;margin-bottom:6px;padding-bottom:10px;border-bottom:3px solid #e2e8f0;">
+          😤 הכאבים העיקריים שעלו
+        </div>
+        <div style="margin-top:16px;">
+          ${g('biggest_pain') !== '—' ? '<div style="' + cardStyle + '">' + nl2br(g('biggest_pain')) + '</div>' : ''}
+          ${g('missed_followup') !== 'לא' && g('missed_followup') !== '—' ? '<div style="' + cardStyle + '">פספוס מעקב על מיילים: <strong>' + g('missed_followup') + '</strong></div>' : ''}
+          ${g('cat_search').includes('קשה') || g('cat_search').includes('לא מוצאת') ? '<div style="' + cardStyle + '">קושי במציאת מסמכים: <strong>' + g('cat_search') + '</strong></div>' : ''}
+          ${g('ver_mistake') !== 'לא' && g('ver_mistake') !== '—' ? '<div style="' + cardStyle + '">שגיאות גרסאות: <strong>' + g('ver_mistake') + '</strong></div>' : ''}
+        </div>
+      </div>
+
+      <!-- CURRENT PROCESS -->
+      <div style="margin-bottom:36px;">
+        <div style="font-size:18px;font-weight:800;color:#1e293b;margin-bottom:6px;padding-bottom:10px;border-bottom:3px solid #e2e8f0;">
+          🔄 תהליך העבודה הנוכחי
+        </div>
+        <div style="margin-top:16px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div style="background:#f1f5f9;border-radius:10px;padding:16px;">
+              <div style="color:#64748b;font-size:11px;margin-bottom:4px;">הזמנות פתוחות במקביל</div>
+              <div style="font-size:20px;font-weight:800;color:#1e3a5f;">${g('open_orders')}</div>
+            </div>
+            <div style="background:#f1f5f9;border-radius:10px;padding:16px;">
+              <div style="color:#64748b;font-size:11px;margin-bottom:4px;">הצעות מחיר פתוחות</div>
+              <div style="font-size:20px;font-weight:800;color:#1e3a5f;">${g('quote_open')}</div>
+            </div>
+            <div style="background:#f1f5f9;border-radius:10px;padding:16px;">
+              <div style="color:#64748b;font-size:11px;margin-bottom:4px;">תדירות עדכון לקוחות</div>
+              <div style="font-size:16px;font-weight:700;color:#1e3a5f;">${g('customer_update_freq')}</div>
+            </div>
+            <div style="background:#f1f5f9;border-radius:10px;padding:16px;">
+              <div style="color:#64748b;font-size:11px;margin-bottom:4px;">שינויי גרסאות</div>
+              <div style="font-size:16px;font-weight:700;color:#1e3a5f;">${g('ver_freq')}</div>
+            </div>
+          </div>
+          ${g('order_flow') !== '—' ? `
+          <div style="margin-top:14px;">
+            <div style="font-weight:600;color:#334155;font-size:14px;margin-bottom:8px;">מסע הזמנה:</div>
+            <div style="background:#f8fafc;border-right:4px solid #3b82f6;padding:12px 16px;border-radius:0 8px 8px 0;font-size:13px;line-height:1.8;white-space:pre-wrap;">${g('order_flow')}</div>
+          </div>` : ''}
+        </div>
+      </div>
+
+      <!-- VERSION 1 REQUIREMENTS -->
+      <div style="margin-bottom:36px;">
+        <div style="font-size:18px;font-weight:800;color:#1e293b;margin-bottom:6px;padding-bottom:10px;border-bottom:3px solid #e2e8f0;">
+          ✅ מה חייב להיות — Version 1
+        </div>
+        <div style="margin-top:16px;">
+          ${g('must_have') !== '—' ? '<div style="' + cardStyle + '">' + nl2br(g('must_have')) + '</div>' : '<div style="color:#94a3b8;font-style:italic;">לא צוין</div>'}
+        </div>
+      </div>
+
+      <!-- FUTURE -->
+      ${g('nice_to_have') !== '—' ? `
+      <div style="margin-bottom:36px;">
+        <div style="font-size:18px;font-weight:800;color:#1e293b;margin-bottom:6px;padding-bottom:10px;border-bottom:3px solid #e2e8f0;">
+          🔮 Version 2 — לעתיד
+        </div>
+        <div style="margin-top:16px;">
+          <div style="background:#f0fdf4;border-right:4px solid #10b981;padding:12px 16px;border-radius:0 8px 8px 0;font-size:13px;line-height:1.8;">${nl2br(g('nice_to_have'))}</div>
+        </div>
+      </div>` : ''}
+
+      <!-- RECOMMENDATIONS -->
+      <div style="margin-bottom:36px;">
+        <div style="font-size:18px;font-weight:800;color:#1e293b;margin-bottom:6px;padding-bottom:10px;border-bottom:3px solid #e2e8f0;">
+          🛠️ המלצות למערכת — על בסיס התשובות שלך
+        </div>
+        <div style="margin-top:16px;">
+          <!-- Always recommended -->
+          ${['ניהול הזמנות עם סטטוסים מותאמים אישית','כרטיס לקוח + היסטוריית הזמנות','כרטיס ספק + ביצועים','מעקב מסמכים לכל הזמנה','דשבורד — כל ההזמנות הפתוחות במבט אחד'].map(t=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-radius:10px;background:#f8fafc;margin-bottom:8px;">
+              <span style="font-size:14px;color:#1e293b;">📋 ${t}</span>
+              ${recBadge('חובה')}
+            </div>
+          `).join('')}
+          <!-- Dynamic recommendations -->
+          ${recs.map(r=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-radius:10px;background:#f8fafc;margin-bottom:8px;">
+              <span style="font-size:14px;color:#1e293b;">${r.icon} ${r.text}</span>
+              ${recBadge(r.priority)}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- USERS & MOBILE -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+        <div style="background:#f1f5f9;border-radius:12px;padding:20px;">
+          <div style="color:#64748b;font-size:12px;margin-bottom:8px;">👥 משתמשים</div>
+          <div style="font-size:14px;font-weight:600;color:#1e293b;">${g('sys_users')}</div>
+        </div>
+        <div style="background:#f1f5f9;border-radius:12px;padding:20px;">
+          <div style="color:#64748b;font-size:12px;margin-bottom:8px;">📱 נייד</div>
+          <div style="font-size:14px;font-weight:600;color:#1e293b;">${g('mobile')}</div>
+        </div>
+      </div>
+
+      <div style="color:#94a3b8;font-size:11px;text-align:center;margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;">
+        מסמך זה הופק אוטומטית על בסיס השאלון שמילאת | ${date}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════
+//  PDF GENERATION
+// ════════════════════════════════════════════════════
+function buildPdfHtml() {
+  const unanswered = getUnanswered();
+  const timeTaken = state.endTime && state.startTime ? formatTime(state.endTime - state.startTime) : "לא נמדד";
+  const date = new Date().toLocaleDateString('he-IL', { year:'numeric', month:'long', day:'numeric' });
+  const businessName = getVal('business_name') || getVal('cat_structure') || "לקוח CRM";
+
+  let sectionsHtml = '';
+  STEPS.forEach(step => {
+    sectionsHtml += `
+      <div class="pdf-section-header" style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#1e3a5f,#1e40af);color:#fff;padding:16px 24px;border-radius:12px;margin-bottom:20px;margin-top:30px;page-break-before:auto;">
+        <span style="font-size:22px;">${step.icon}</span>
+        <span style="font-size:17px;font-weight:700;">${step.title}</span>
+      </div>
+    `;
+    step.questions.forEach(q => {
+      const val = getVal(q.id);
+      const isEmpty = !val;
+      sectionsHtml += `
+        <div style="margin-bottom:18px;page-break-inside:avoid;">
+          <div style="font-weight:600;color:#334155;font-size:13px;margin-bottom:6px;">${q.label}</div>
+          <div style="background:${isEmpty?'#fafafa':'#f8fafc'};border-right:4px solid ${isEmpty?'#e2e8f0':'#3b82f6'};padding:10px 16px;border-radius:0 8px 8px 0;color:${isEmpty?'#94a3b8':'#1e293b'};font-size:13px;line-height:1.7;${isEmpty?'font-style:italic;':''}white-space:pre-wrap;">
+            ${isEmpty ? '— לא מולא —' : val.replace(/</g,'&lt;')}
+          </div>
+        </div>
+      `;
+    });
+  });
+
+  const unansweredHtml = unanswered.length > 0 ? `
+    <div style="background:#fef9c3;border:2px solid #fde047;border-radius:12px;padding:20px;margin-top:30px;page-break-inside:avoid;">
+      <h3 style="color:#854d0e;margin-bottom:14px;font-size:16px;">⚠️ שאלות שלא מולאו (${unanswered.length})</h3>
+      ${unanswered.map(u => `
+        <div style="background:#fff;border-right:3px solid #fbbf24;padding:8px 12px;margin-bottom:8px;border-radius:0 6px 6px 0;font-size:13px;color:#92400e;">
+          <span style="font-weight:600;">${u.icon} ${u.step}:</span> ${u.question}
+        </div>
+      `).join('')}
+    </div>
+  ` : `<div style="background:#dcfce7;border:2px solid #86efac;border-radius:12px;padding:16px 20px;margin-top:30px;color:#166534;font-weight:600;">✅ כל השאלות מולאו — תשובות מלאות!</div>`;
+
+  return `
+  <div style="direction:rtl;font-family:'Heebo',Arial,sans-serif;background:#fff;width:100%;unicode-bidi:plaintext;">
+    
+    <!-- COVER PAGE -->
+    <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);padding:60px 50px;min-height:270mm;display:flex;flex-direction:column;justify-content:space-between;page-break-after:always;">
+      <div>
+        <div style="font-size:60px;margin-bottom:24px;">🗂️</div>
+        <div style="color:#fff;font-size:34px;font-weight:800;margin-bottom:8px;">מסמך אפיון</div>
+        <div style="color:#93c5fd;font-size:20px;margin-bottom:48px;">מערכת CRM לניהול רכש ויבוא</div>
+        
+        <div style="background:rgba(255,255,255,0.08);border-radius:16px;padding:28px;border:1px solid rgba(255,255,255,0.15);">
+          <div style="color:#60a5fa;font-size:12px;letter-spacing:2px;margin-bottom:16px;">פרטי לקוח</div>
+          <div style="color:#94a3b8;font-size:13px;margin-bottom:4px;">עסק</div>
+          <div style="color:#fff;font-size:18px;font-weight:600;margin-bottom:16px;">${businessName}</div>
+          <div style="color:#94a3b8;font-size:13px;margin-bottom:4px;">תאריך</div>
+          <div style="color:#fff;font-size:16px;">${date}</div>
+        </div>
+      </div>
+      
+      <div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+          ${STEPS.map(s=>`<span style="background:rgba(59,130,246,0.2);border:1px solid rgba(59,130,246,0.4);color:#93c5fd;padding:5px 12px;border-radius:20px;font-size:11px;">${s.icon} ${s.title}</span>`).join('')}
+        </div>
+        <div style="color:#475569;font-size:12px;">הופק ע"י מערכת אפיון CRM אוטומטית | ${RECIPIENT_EMAIL}</div>
+      </div>
+    </div>
+
+    <!-- STATS PAGE -->
+    <div style="padding:40px 50px;page-break-after:always;">
+      <div style="font-size:22px;font-weight:800;color:#1e293b;margin-bottom:24px;padding-bottom:12px;border-bottom:3px solid #e2e8f0;">📊 סיכום טכני</div>
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;">
+        <div style="background:#f1f5f9;border-radius:12px;padding:20px;text-align:center;">
+          <div style="color:#64748b;font-size:12px;margin-bottom:8px;">זמן מילוי השאלון</div>
+          <div style="font-size:22px;font-weight:800;color:#1e3a5f;">${timeTaken}</div>
+        </div>
+        <div style="background:${unanswered.length>0?'#fef9c3':'#dcfce7'};border-radius:12px;padding:20px;text-align:center;">
+          <div style="color:#64748b;font-size:12px;margin-bottom:8px;">שאלות לא מולאו</div>
+          <div style="font-size:22px;font-weight:800;color:${unanswered.length>0?'#854d0e':'#166534'};">${unanswered.length}</div>
+        </div>
+        <div style="background:#f1f5f9;border-radius:12px;padding:20px;text-align:center;">
+          <div style="color:#64748b;font-size:12px;margin-bottom:8px;">שאלות שמולאו</div>
+          <div style="font-size:22px;font-weight:800;color:#1e293b;">${STEPS.reduce((a,s)=>a+s.questions.length,0) - unanswered.length} / ${STEPS.reduce((a,s)=>a+s.questions.length,0)}</div>
+        </div>
+        <div style="background:#f1f5f9;border-radius:12px;padding:20px;text-align:center;">
+          <div style="color:#64748b;font-size:12px;margin-bottom:8px;">תאריך מילוי</div>
+          <div style="font-size:16px;font-weight:700;color:#1e293b;">${date}</div>
+        </div>
+      </div>
+
+      <div style="background:#f8fafc;border-radius:12px;padding:24px;margin-bottom:24px;">
+        <div style="font-weight:700;color:#1e293b;margin-bottom:14px;font-size:15px;">🔍 אתגרים שעלו בשיחת ההיכרות:</div>
+        ${KNOWN_INFO.challenges.map(c=>`
+          <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;font-size:13px;color:#374151;">
+            <span style="color:#3b82f6;margin-top:2px;">•</span><span>${c}</span>
+          </div>
+        `).join('')}
+      </div>
+
+      ${unansweredHtml}
+    </div>
+
+    <!-- SUMMARY PAGE (what client sees) -->
+    <div style="page-break-before:always;">
+      ${generateSummaryHtml()}
+    </div>
+
+    <!-- ANSWERS PAGES (full Q&A) -->
+    <div style="padding:40px 50px;page-break-before:always;">
+      <div style="font-size:22px;font-weight:800;color:#1e293b;margin-bottom:8px;padding-bottom:12px;border-bottom:3px solid #e2e8f0;">📋 תשובות מפורטות</div>
+      ${sectionsHtml}
+      <div style="color:#94a3b8;font-size:11px;text-align:center;margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0;">
+        מסמך זה הופק אוטומטית ע"י מערכת אפיון CRM | ${date}
+      </div>
+    </div>
+  </div>`;
+}
+
+async function generatePDFBlob() {
+  const pdfContainer = document.getElementById('pdf-template');
+  pdfContainer.innerHTML = buildPdfHtml();
+  pdfContainer.style.display = 'block';
+
+  // Wait for Heebo font to load
+  try { await document.fonts.ready; } catch(e) {}
+
+  const opt = {
+    margin: 0,
+    filename: 'crm-spec.pdf',
+    image: { type: 'jpeg', quality: 0.95 },
+    html2canvas: { 
+      scale: 2, useCORS: true, letterRendering: true, allowTaint: true,
+      onclone: (doc) => {
+        // Ensure RTL in cloned doc
+        doc.documentElement.setAttribute('dir', 'rtl');
+        doc.documentElement.setAttribute('lang', 'he');
+      }
+    },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  const blob = await html2pdf().set(opt).from(pdfContainer).outputPdf('blob');
+  pdfContainer.style.display = 'none';
+  return blob;
+}
+
+async function generateAndDownloadPDF() {
+  const date = new Date().toLocaleDateString('he-IL').replace(/\//g, '-');
+  const blob = await generatePDFBlob();
+  // Trigger download
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'אפיון-CRM-' + date + '.pdf';
+  a.click();
+  URL.revokeObjectURL(url);
+  return true;
+}
+
+async function pdfToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// ════════════════════════════════════════════════════
+//  EMAIL VIA N8N WEBHOOK
+// ════════════════════════════════════════════════════
+async function sendToN8n() {
+  setState({ emailStatus: 'sending' });
+  const unanswered = getUnanswered();
+  const timeTaken = state.endTime && state.startTime ? formatTime(state.endTime - state.startTime) : "לא נמדד";
+
+  const allAnswers = {};
+  STEPS.forEach(step => {
+    step.questions.forEach(q => {
+      const v = state.answers[q.id];
+      allAnswers[q.id] = {
+        question: q.label,
+        section: step.title,
+        answer: Array.isArray(v) ? v.join(', ') : (v || '')
+      };
+    });
+  });
+
+  // Build full Q&A text for email
+  let qaText = '';
+  STEPS.forEach(step => {
+    qaText += '\n\n--- ' + step.icon + ' ' + step.title + ' ---\n';
+    step.questions.forEach(q => {
+      const v = state.answers[q.id];
+      const ans = Array.isArray(v) ? v.join(', ') : (v || 'לא מולא');
+      qaText += '\nשאלה: ' + q.label + '\nתשובה: ' + ans + '\n';
+    });
+  });
+
+  // Generate PDF and convert to base64
+  let pdfBase64 = null;
+  try {
+    const pdfBlob = await generatePDFBlob();
+    pdfBase64 = await pdfToBase64(pdfBlob);
+    // Also trigger download for the client
+    const url = URL.createObjectURL(pdfBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'אפיון-CRM-' + new Date().toLocaleDateString('he-IL').replace(/\//g,'-') + '.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    console.warn('PDF generation failed:', e);
+  }
+
+  const payload = {
+    recipient: RECIPIENT_EMAIL,
+    date: new Date().toLocaleDateString('he-IL'),
+    timestamp: new Date().toISOString(),
+    timeTaken,
+    totalQuestions: STEPS.reduce((a,s)=>a+s.questions.length,0),
+    unansweredCount: unanswered.length,
+    unanswered: unanswered.map(u => u.icon + ' ' + u.step + ': ' + u.question),
+    qaText,
+    businessName: getVal('cat_structure') || 'לא צוין',
+    mustHave: getVal('must_have') || 'לא צוין',
+    biggestPain: getVal('biggest_pain') || 'לא צוין',
+    pdfBase64: pdfBase64
+  };
+
+  try {
+    const res = await fetch(N8N_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('Status ' + res.status);
+    setState({ emailStatus: 'success' });
+  } catch (err) {
+    console.error('Webhook error:', err);
+    setState({ emailStatus: 'error' });
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  RENDER
+// ════════════════════════════════════════════════════
+function render(scrollToTop = false) {
+  const prevScreen = render._lastScreen || null;
+  const screenChanged = prevScreen !== state.screen;
+  const stepChanged = render._lastStep !== state.step;
+  render._lastScreen = state.screen;
+  render._lastStep = state.step;
+
+  // Save scroll position before re-render (only if staying on same screen/step)
+  const savedScroll = (screenChanged || stepChanged || scrollToTop) ? 0 : window.scrollY;
+
+  const app = document.getElementById('app');
+  if (state.screen === 'intro') app.innerHTML = renderIntro();
+  else if (state.screen === 'quiz') app.innerHTML = renderQuiz();
+  else app.innerHTML = renderResult();
+  attachEvents();
+
+  // Update top progress bar
+  const fill = document.getElementById('top-bar-fill');
+  if (fill) {
+    const pct = state.screen === 'result' ? 100
+      : state.screen === 'quiz' ? Math.round((state.step / STEPS.length) * 95)
+      : 0;
+    fill.style.width = pct + '%';
+  }
+
+  // Restore scroll — only jump to top on actual screen/step transitions
+  window.scrollTo({ top: savedScroll, behavior: 'instant' });
+}
+
+// ─── INTRO ───────────────────────────────────────
+function renderIntro() {
+  return `
+  <div style="text-align:center;margin-bottom:40px;padding-top:8px;animation:fadeInUp 0.4s ease both;">
+    <div style="display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:18px;background:var(--blue-light);border:1px solid #bfdbfe;font-size:30px;margin-bottom:16px;">🗂️</div>
+    <div class="eyebrow">אפיון מערכת</div>
+    <h1>CRM לניהול רכש ויבוא</h1>
+  </div>
+
+  <div class="glass" style="">
+    <div class="eyebrow" style="margin-bottom:16px;">מה שהבנו מהשיחה</div>
+    <div class="info-row">
+      <span class="info-label">עסק</span>
+      <span class="info-value">חברה העוסקת בייבוא ורכש בינלאומי</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">תפקיד</span>
+      <span class="info-value">מנהלת רכש</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">כלים</span>
+      <span class="info-value">מיילים, אקסל, וואטסאפ</span>
+    </div>
+    <hr class="divider">
+    <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--slate-400);margin-bottom:14px;">אתגרים שעלו בשיחה</div>
+    ${KNOWN_INFO.challenges.map((c,i)=>`
+      <div class="challenge-item" style="animation:fadeInUp 0.3s ease ${0.04*i}s both;">
+        <div class="challenge-dot"></div>
+        <span style="color:var(--slate-700);font-size:13px;">${c}</span>
+      </div>
+    `).join('')}
+  </div>
+
+  <div class="glass" style="">
+    <div class="eyebrow" style="color:var(--green);margin-bottom:14px;">מטרת השאלון</div>
+    <p style="color:var(--slate-600);line-height:1.8;font-size:14px;">
+      השאלון נועד לעזור לנו להבין לעומק את אופן העבודה שלך — איך מנהלים הזמנות, ספקים, מסמכים ותקשורת עם לקוחות.
+      <br><br>
+      על בסיס תשובותייך נבנה עבורך <strong style="color:var(--navy);">מסמך אפיון מסודר</strong> שיגדיר בדיוק מה המערכת צריכה לכלול — מה חיוני לגרסה הראשונה ומה ניתן להוסיף בהמשך.
+    </p>
+  </div>
+
+  <div class="glass" style="margin-bottom:24px;">
+    <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--slate-400);margin-bottom:14px;">6 נושאים</div>
+    <div>${STEPS.map(s=>`<span class="topic-badge">${s.icon} ${s.title}</span>`).join('')}</div>
+  </div>
+
+  ${state.hasBackup ? `
+  <div class="backup-banner" style="animation:fadeInUp 0.3s ease both;">
+    <div style="font-size:22px;margin-bottom:8px;">💾</div>
+    <div style="color:var(--blue);font-weight:700;font-size:15px;margin-bottom:4px;">נמצא שאלון שמור</div>
+    <div style="color:var(--slate-500);font-size:13px;margin-bottom:16px;">האם תרצי להמשיך מאיפה שהפסקת?</div>
+    <div style="display:flex;justify-content:center;gap:10px;">
+      <button class="btn btn-primary" onclick="restoreBackup()">המשיכי ←</button>
+      <button class="btn btn-outline" onclick="discardBackup()">התחילי מחדש</button>
+    </div>
+  </div>` : ''}
+
+  <div style="text-align:center;animation:fadeInUp 0.4s ease 0.18s both;">
+    <button class="btn btn-primary btn-large" onclick="startQuiz()">
+      בואי נתחיל &nbsp;←
+    </button>
+    <p style="color:var(--slate-400);font-size:13px;margin-top:12px;">לחצי כשאת מוכנה</p>
+  </div>`;
+}
+
+// ─── QUIZ ────────────────────────────────────────
+function renderQuiz() {
+  const step = STEPS[state.step];
+
+  const qs = step.questions.map(q => {
+    const val = state.answers[q.id];
+    let field = '';
+    if (q.type === 'text') {
+      field = `<input type="text" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="${q.placeholder||''}" oninput="setAnswer('${q.id}',this.value,true)">`;
+    } else if (q.type === 'textarea') {
+      field = `<textarea rows="4" placeholder="${q.placeholder||''}" oninput="setAnswer('${q.id}',this.value,true)">${val||''}</textarea>`;
+    } else if (q.type === 'select') {
+      field = `<select onchange="setAnswer('${q.id}',this.value,true)">
+        <option value="">-- בחר/י --</option>
+        ${q.options.map(o=>`<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')}
+      </select>`;
+    } else if (q.type === 'chips') {
+      const sel = Array.isArray(val) ? val : [];
+      field = `<div class="chips" data-chip-group="${q.id}">${q.options.map(o=>`
+        <button class="chip ${sel.includes(o)?'active':''}" data-chip-val="${o}" onclick="toggleChip('${q.id}','${o}')">${sel.includes(o)?'✓ ':''}${o}</button>
+      `).join('')}</div>`;
+    }
+    return `<div class="q-item"><label class="label">${q.label}</label>${field}</div>`;
+  }).join('');
+
+  const pills = STEPS.map((s,i)=>`
+    <div class="pill ${i<state.step?'done':i===state.step?'active':'todo'}" 
+      ${i<state.step?`onclick="goStep(${i})"`:''}>${i<state.step?'✓':s.icon} ${s.title}</div>
+  `).join('');
+
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+    <div class="step-pills" style="margin-bottom:0;">${pills}</div>
+    <button class="btn-ghost" onclick="setState({screen:'intro'})">← חזרה</button>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <h2 style="color:var(--navy);">${step.icon}&nbsp; ${step.title}</h2>
+        <span style="font-size:12px;font-weight:500;color:var(--slate-400);background:var(--surface-2);padding:4px 10px;border-radius:100px;border:1px solid var(--border);">${state.step+1} / ${STEPS.length}</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="q-group animate-in">${qs}</div>
+      <div class="nav">
+        <button class="btn btn-outline" onclick="${state.step>0?`goStep(${state.step-1})`:"setState({screen:'intro'})"}">→ הקודם</button>
+        ${state.step < STEPS.length-1
+          ? `<button class="btn btn-primary" onclick="goStep(${state.step+1})">הבא ←</button>`
+          : `<button class="btn btn-success" onclick="finishQuiz()">סיום ושליחה ✓</button>`
+        }
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── RESULT ──────────────────────────────────────
+function renderResult() {
+  const unanswered = getUnanswered();
+  const timeTaken = state.endTime && state.startTime ? formatTime(state.endTime - state.startTime) : "—";
+  const totalQ = STEPS.reduce((a,s)=>a+s.questions.length,0);
+  const answered = totalQ - unanswered.length;
+
+  let statusHtml = '';
+  if (state.emailStatus === 'sending') {
+    statusHtml = `<div class="status-box status-sending"><div class="spinner"></div><span>שולח לאליישמע...</span></div>`;
+  } else if (state.emailStatus === 'success') {
+    statusHtml = `<div class="status-box status-success"><span>✓</span><span>נשלח בהצלחה לאליישמע!</span></div>`;
+  } else if (state.emailStatus === 'error') {
+    statusHtml = `<div class="status-box status-error"><span>⚠</span><div>לא הצלחנו לשלוח — PDF הורד למחשב שלך.<br><small style="opacity:0.7;">ודא שה-Webhook ב-n8n פעיל.</small></div></div>`;
+  }
+
+  const unansweredHtml = unanswered.length > 0
+    ? `<div class="unanswered-box">
+        <div style="font-weight:700;color:#fbbf24;margin-bottom:10px;font-size:13px;">⚠ שאלות שלא מולאו (${unanswered.length})</div>
+        ${unanswered.map(u=>`<div class="unanswered-item">${u.icon} <strong>${u.step}:</strong> ${u.question}</div>`).join('')}
+       </div>`
+    : `<div class="all-answered">✓ &nbsp;כל השאלות מולאו!</div>`;
+
+  return `
+  <div class="card" style="animation:fadeInUp 0.4s ease both;">
+    <div class="result-header">
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:#d1fae5;border:2px solid #6ee7b7;font-size:26px;margin-bottom:14px;">✓</div>
+      <h2>מסמך האפיון מוכן!</h2>
+      <p>תודה — הנה הפעולות הבאות</p>
+    </div>
+    <div class="card-body">
+      ${statusHtml}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div class="stat-box">
+          <div class="stat-label">זמן מילוי</div>
+          <div class="stat-value">${timeTaken}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">שאלות שנענו</div>
+          <div class="stat-value" style="color:${unanswered.length===0?'var(--emerald-400)':'#fbbf24'};">
+            ${answered}<span style="font-size:14px;font-weight:400;color:var(--slate-500);"> / ${totalQ}</span>
+          </div>
+        </div>
+      </div>
+
+      ${unansweredHtml}
+
+      <div class="action-btns" style="margin-top:24px;">
+        <button class="btn btn-primary" onclick="downloadPDF()" id="pdf-btn">
+          הורד PDF
+        </button>
+        <button class="btn btn-outline" onclick="clearBackup();setState({screen:'intro',step:0,answers:{},startTime:null,endTime:null,emailStatus:'idle',hasBackup:false})">
+          מלאי מחדש
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════
+//  EVENTS & ACTIONS
+// ════════════════════════════════════════════════════
+function attachEvents() {}
+
+function startQuiz() {
+  state.startTime = Date.now();
+  setState({ screen: 'quiz', step: 0 });
+}
+function restoreBackup() {
+  const data = state._backupData;
+  if (data) {
+    state.answers = data.answers;
+    state.startTime = data.startTime;
+    state.hasBackup = false;
+    setState({ screen: 'quiz', step: 0 });
+  }
+}
+function discardBackup() {
+  clearBackup();
+  state.hasBackup = false;
+  state._backupData = null;
+  render();
+}
+function goStep(i) { setState({ step: i }); }
+function finishQuiz() {
+  state.endTime = Date.now();
+  setState({ screen: 'result' });
+  // Auto-send to n8n (includes PDF generation + download)
+  if (N8N_WEBHOOK_URL && !N8N_WEBHOOK_URL.includes('YOUR-N8N')) {
+    sendToN8n();
+  } else {
+    // If no webhook, just download the PDF
+    generateAndDownloadPDF();
+  }
+}
+async function downloadPDF() {
+  const btn = document.getElementById('pdf-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ מייצר PDF...'; }
+  try {
+    await generateAndDownloadPDF();
+    if (btn) { btn.disabled = false; btn.textContent = '✅ PDF הורד!'; }
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = '📥 הורד PDF'; }
+    console.error(e);
+  }
+}
+
+// Expose to global scope for inline event handlers
+window.startQuiz = startQuiz;
+window.restoreBackup = restoreBackup;
+window.discardBackup = discardBackup;
+window.goStep = goStep;
+window.finishQuiz = finishQuiz;
+window.downloadPDF = downloadPDF;
+window.sendToN8n = sendToN8n;
+window.setState = setState;
+window.setAnswer = setAnswer;
+window.toggleChip = toggleChip;
+window.clearBackup = clearBackup;
+
+// ════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════
+render();
+</script>
+</body>
+</html>
