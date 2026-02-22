@@ -3,8 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- FIX: Added Content-Security-Policy -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://elishamaf.app.n8n.cloud;">
 <title>אפיון מערכת CRM</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<!-- FIX: Added SRI integrity hash for html2pdf CDN script -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
+  integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+3To5Ju1tEKL1+cwtxHqI5jc6jyDyoJe7h9XsA=="
+  crossorigin="anonymous"></script>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ══════════════════════════════════════
@@ -360,6 +365,25 @@ select option { background: var(--surface); color: var(--navy); }
   border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; text-align: center;
 }
 
+/* FIX: Storage warning banner */
+.storage-warning {
+  background: #fef2f2; border: 1px solid #fecaca;
+  border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 12px;
+  color: #dc2626; font-size: 13px; font-weight: 500;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* Auto-save indicator */
+.autosave-indicator {
+  position: fixed; bottom: 16px; left: 16px;
+  background: var(--green-light); border: 1px solid #a7f3d0;
+  color: var(--green); font-size: 12px; font-weight: 600;
+  padding: 6px 14px; border-radius: 100px;
+  opacity: 0; transition: opacity 0.4s ease;
+  z-index: 998; pointer-events: none;
+}
+.autosave-indicator.visible { opacity: 1; }
+
 .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 
 .spinner {
@@ -413,6 +437,9 @@ select option { background: var(--surface); color: var(--navy); }
 <!-- TOP PROGRESS BAR -->
 <div id="top-bar"><div id="top-bar-fill" style="width:0%"></div></div>
 
+<!-- FIX: Auto-save indicator -->
+<div class="autosave-indicator" id="autosave-indicator">💾 נשמר</div>
+
 <!-- ─── APP ─────────────────────────────────────────── -->
 <div class="container" id="app">
   <!-- Screens rendered by JS -->
@@ -423,10 +450,28 @@ select option { background: var(--surface); color: var(--navy); }
 
 <script>
 // ════════════════════════════════════════════════════
-//  CONFIG  — עדכן את הכתובת של ה-n8n Webhook שלך
+//  CONFIG
+//  FIX: Webhook URL remains as-is (client-side only app).
+//       Added a shared secret header for basic auth.
 // ════════════════════════════════════════════════════
 const N8N_WEBHOOK_URL = "https://elishamaf.app.n8n.cloud/webhook/crm-form";
 const RECIPIENT_EMAIL = "ELISHAMA1324@GMAIL.COM";
+// FIX: Simple shared secret sent as custom header — add matching check in n8n workflow
+const WEBHOOK_SECRET = "crm-form-2024-secret";
+
+// ════════════════════════════════════════════════════
+//  FIX: Secure HTML escaping utility
+//  Prevents XSS when injecting user input into HTML
+// ════════════════════════════════════════════════════
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 // ════════════════════════════════════════════════════
 //  DATA
@@ -511,16 +556,58 @@ const STEPS = [
 //  STATE
 // ════════════════════════════════════════════════════
 const STORAGE_KEY = 'crm_form_backup';
+// FIX: Auto-save debounce timer
+let _saveTimer = null;
+// FIX: Auto-save indicator timer
+let _indicatorTimer = null;
 
+// FIX: saveBackup now saves current step too,
+//      shows user-visible error if storage fails,
+//      and displays the autosave indicator
 function saveBackup() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    const payload = JSON.stringify({
       answers: state.answers,
       startTime: state.startTime,
+      step: state.step,
       savedAt: Date.now()
-    }));
-  } catch(e) {}
+    });
+    localStorage.setItem(STORAGE_KEY, payload);
+    // Show "saved" indicator
+    _showAutosaveIndicator();
+  } catch(e) {
+    // FIX: Show visible warning instead of silently failing
+    _showStorageWarning();
+  }
 }
+
+// FIX: Show autosave indicator briefly
+function _showAutosaveIndicator() {
+  const el = document.getElementById('autosave-indicator');
+  if (!el) return;
+  el.classList.add('visible');
+  clearTimeout(_indicatorTimer);
+  _indicatorTimer = setTimeout(() => el.classList.remove('visible'), 1800);
+}
+
+// FIX: Show persistent storage error warning in the UI
+function _showStorageWarning() {
+  const existing = document.getElementById('storage-warning-banner');
+  if (existing) return; // already shown
+  const banner = document.createElement('div');
+  banner.id = 'storage-warning-banner';
+  banner.className = 'storage-warning';
+  banner.innerHTML = '⚠️ <strong>שמירה אוטומטית נכשלה</strong> — האחסון המקומי מלא. ייתכן שהנתונים לא יישמרו בין רענון דפים. מומלץ לסיים את השאלון ולשלוח עכשיו.';
+  const app = document.getElementById('app');
+  if (app) app.insertAdjacentElement('beforebegin', banner);
+}
+
+// FIX: Debounced save — prevents too many writes on rapid typing
+function debouncedSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(saveBackup, 400);
+}
+
 function loadBackup() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -569,7 +656,8 @@ function getVal(id) {
 }
 function setAnswer(id, val, skipRender = false) {
   state.answers[id] = val;
-  saveBackup(); // auto-backup on every keystroke
+  // FIX: Use debounced save on keystrokes to avoid excessive writes
+  debouncedSave();
   if (!skipRender) render();
 }
 function toggleChip(id, opt) {
@@ -606,54 +694,58 @@ function getUnanswered() {
 // ════════════════════════════════════════════════════
 //  SUMMARY GENERATOR — מסמך סיכום ללקוח
 // ════════════════════════════════════════════════════
-function nl2br(str) { return (str || '').split('\n').join('<br>'); }
+function nl2br(str) { return escapeHtml(str || '').split('\n').join('<br>'); }
+
 function generateSummaryHtml(forEmail = false) {
   const g = (id) => getVal(id) || '—';
   const date = new Date().toLocaleDateString('he-IL', { year:'numeric', month:'long', day:'numeric' });
 
   // Build automated recommendations based on answers
   const recs = [];
-  
+
   // Updates automation
   if (g('auto_update').includes('כן')) recs.push({ icon: '🔔', text: 'עדכון אוטומטי שבועי ללקוחות', priority: 'חובה' });
   if (g('missed_followup') !== 'לא') recs.push({ icon: '📧', text: 'מעקב מיילים + תזכורות אוטומטיות', priority: 'חובה' });
-  
+
   // Quotes
-  if (g('quote_auto_remind').includes('כן')) recs.push({ icon: '⏰', text: `תזכורת אוטומטית לספק לאחר ${g('quote_remind_time')}`, priority: 'חובה' });
+  if (g('quote_auto_remind').includes('כן')) recs.push({ icon: '⏰', text: `תזכורת אוטומטית לספק לאחר ${escapeHtml(g('quote_remind_time'))}`, priority: 'חובה' });
   if (g('quote_multi') !== 'לא, בדרך כלל ספק אחד') recs.push({ icon: '📊', text: 'השוואת הצעות מחיר מספקים מרובים', priority: 'חשוב' });
-  
+
   // Versions
   if (!g('ver_freq').includes('כמעט אף פעם')) recs.push({ icon: '🔀', text: 'ניהול גרסאות לכל הזמנה (version control)', priority: 'חובה' });
   if (g('ver_mistake') !== 'לא') recs.push({ icon: '⚠️', text: 'סימון גרסה פעילה למניעת שגיאות', priority: 'חובה' });
-  
+
   // Catalog
   if (g('cat_search').includes('קשה') || g('cat_search').includes('לא מוצאת')) recs.push({ icon: '🔍', text: 'מנוע חיפוש מסמכים מרכזי', priority: 'חשוב' });
-  
+
   // Mobile
   if (g('mobile').includes('חשוב') || g('mobile').includes('קריטי')) recs.push({ icon: '📱', text: 'ממשק מותאם לנייד', priority: 'חובה' });
-  
+
   // Users
   if (g('sys_users').includes('הבוס')) recs.push({ icon: '👔', text: 'דשבורד סיכום למנהל', priority: 'חשוב' });
   if (g('sys_users').includes('פורטל לקוח')) recs.push({ icon: '🌐', text: 'פורטל לקוח עצמאי', priority: 'עתידי' });
 
-  const cardStyle = forEmail 
-    ? 'background:#f8fafc;border-radius:10px;padding:16px 20px;margin-bottom:12px;border-right:4px solid #3b82f6;'
+  // FIX: cardStyle no longer has dead duplicate ternary —
+  //      email variant now has lighter background for email clients
+  const cardStyle = forEmail
+    ? 'background:#f0f4ff;border-radius:10px;padding:16px 20px;margin-bottom:12px;border-right:4px solid #3b82f6;'
     : 'background:#f8fafc;border-radius:10px;padding:16px 20px;margin-bottom:12px;border-right:4px solid #3b82f6;';
 
   const recBadge = (p) => {
     const colors = { 'חובה': '#dc2626', 'חשוב': '#d97706', 'עתידי': '#6b7280' };
     const bg = { 'חובה': '#fef2f2', 'חשוב': '#fffbeb', 'עתידי': '#f9fafb' };
-    return `<span style="background:${bg[p]};color:${colors[p]};border:1px solid ${colors[p]};padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;">${p}</span>`;
+    return `<span style="background:${bg[p]};color:${colors[p]};border:1px solid ${colors[p]};padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;">${escapeHtml(p)}</span>`;
   };
 
+  // FIX: All user-input values are now passed through nl2br() which calls escapeHtml() internally
   return `
   <div style="direction:rtl;font-family:'Segoe UI',Tahoma,sans-serif;background:#fff;">
-    
+
     <!-- SUMMARY HEADER -->
     <div style="background:linear-gradient(135deg,#1e3a5f,#1e40af);padding:40px 50px;color:#fff;">
       <div style="font-size:13px;letter-spacing:2px;color:#93c5fd;margin-bottom:8px;">סיכום אפיון</div>
       <div style="font-size:28px;font-weight:800;margin-bottom:6px;">מה המערכת שלך צריכה לכלול</div>
-      <div style="color:#bfdbfe;font-size:14px;">${date} | נוצר על בסיס השאלון שמילאת</div>
+      <div style="color:#bfdbfe;font-size:14px;">${escapeHtml(date)} | נוצר על בסיס השאלון שמילאת</div>
     </div>
 
     <div style="padding:40px 50px;">
@@ -665,9 +757,9 @@ function generateSummaryHtml(forEmail = false) {
         </div>
         <div style="margin-top:16px;">
           ${g('biggest_pain') !== '—' ? '<div style="' + cardStyle + '">' + nl2br(g('biggest_pain')) + '</div>' : ''}
-          ${g('missed_followup') !== 'לא' && g('missed_followup') !== '—' ? '<div style="' + cardStyle + '">פספוס מעקב על מיילים: <strong>' + g('missed_followup') + '</strong></div>' : ''}
-          ${g('cat_search').includes('קשה') || g('cat_search').includes('לא מוצאת') ? '<div style="' + cardStyle + '">קושי במציאת מסמכים: <strong>' + g('cat_search') + '</strong></div>' : ''}
-          ${g('ver_mistake') !== 'לא' && g('ver_mistake') !== '—' ? '<div style="' + cardStyle + '">שגיאות גרסאות: <strong>' + g('ver_mistake') + '</strong></div>' : ''}
+          ${g('missed_followup') !== 'לא' && g('missed_followup') !== '—' ? '<div style="' + cardStyle + '">פספוס מעקב על מיילים: <strong>' + escapeHtml(g('missed_followup')) + '</strong></div>' : ''}
+          ${g('cat_search').includes('קשה') || g('cat_search').includes('לא מוצאת') ? '<div style="' + cardStyle + '">קושי במציאת מסמכים: <strong>' + escapeHtml(g('cat_search')) + '</strong></div>' : ''}
+          ${g('ver_mistake') !== 'לא' && g('ver_mistake') !== '—' ? '<div style="' + cardStyle + '">שגיאות גרסאות: <strong>' + escapeHtml(g('ver_mistake')) + '</strong></div>' : ''}
         </div>
       </div>
 
@@ -680,25 +772,25 @@ function generateSummaryHtml(forEmail = false) {
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
             <div style="background:#f1f5f9;border-radius:10px;padding:16px;">
               <div style="color:#64748b;font-size:11px;margin-bottom:4px;">הזמנות פתוחות במקביל</div>
-              <div style="font-size:20px;font-weight:800;color:#1e3a5f;">${g('open_orders')}</div>
+              <div style="font-size:20px;font-weight:800;color:#1e3a5f;">${escapeHtml(g('open_orders'))}</div>
             </div>
             <div style="background:#f1f5f9;border-radius:10px;padding:16px;">
               <div style="color:#64748b;font-size:11px;margin-bottom:4px;">הצעות מחיר פתוחות</div>
-              <div style="font-size:20px;font-weight:800;color:#1e3a5f;">${g('quote_open')}</div>
+              <div style="font-size:20px;font-weight:800;color:#1e3a5f;">${escapeHtml(g('quote_open'))}</div>
             </div>
             <div style="background:#f1f5f9;border-radius:10px;padding:16px;">
               <div style="color:#64748b;font-size:11px;margin-bottom:4px;">תדירות עדכון לקוחות</div>
-              <div style="font-size:16px;font-weight:700;color:#1e3a5f;">${g('customer_update_freq')}</div>
+              <div style="font-size:16px;font-weight:700;color:#1e3a5f;">${escapeHtml(g('customer_update_freq'))}</div>
             </div>
             <div style="background:#f1f5f9;border-radius:10px;padding:16px;">
               <div style="color:#64748b;font-size:11px;margin-bottom:4px;">שינויי גרסאות</div>
-              <div style="font-size:16px;font-weight:700;color:#1e3a5f;">${g('ver_freq')}</div>
+              <div style="font-size:16px;font-weight:700;color:#1e3a5f;">${escapeHtml(g('ver_freq'))}</div>
             </div>
           </div>
           ${g('order_flow') !== '—' ? `
           <div style="margin-top:14px;">
             <div style="font-weight:600;color:#334155;font-size:14px;margin-bottom:8px;">מסע הזמנה:</div>
-            <div style="background:#f8fafc;border-right:4px solid #3b82f6;padding:12px 16px;border-radius:0 8px 8px 0;font-size:13px;line-height:1.8;white-space:pre-wrap;">${g('order_flow')}</div>
+            <div style="background:#f8fafc;border-right:4px solid #3b82f6;padding:12px 16px;border-radius:0 8px 8px 0;font-size:13px;line-height:1.8;white-space:pre-wrap;">${nl2br(g('order_flow'))}</div>
           </div>` : ''}
         </div>
       </div>
@@ -733,14 +825,14 @@ function generateSummaryHtml(forEmail = false) {
           <!-- Always recommended -->
           ${['ניהול הזמנות עם סטטוסים מותאמים אישית','כרטיס לקוח + היסטוריית הזמנות','כרטיס ספק + ביצועים','מעקב מסמכים לכל הזמנה','דשבורד — כל ההזמנות הפתוחות במבט אחד'].map(t=>`
             <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-radius:10px;background:#f8fafc;margin-bottom:8px;">
-              <span style="font-size:14px;color:#1e293b;">📋 ${t}</span>
+              <span style="font-size:14px;color:#1e293b;">📋 ${escapeHtml(t)}</span>
               ${recBadge('חובה')}
             </div>
           `).join('')}
           <!-- Dynamic recommendations -->
           ${recs.map(r=>`
             <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-radius:10px;background:#f8fafc;margin-bottom:8px;">
-              <span style="font-size:14px;color:#1e293b;">${r.icon} ${r.text}</span>
+              <span style="font-size:14px;color:#1e293b;">${escapeHtml(r.icon)} ${escapeHtml(r.text)}</span>
               ${recBadge(r.priority)}
             </div>
           `).join('')}
@@ -751,16 +843,16 @@ function generateSummaryHtml(forEmail = false) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
         <div style="background:#f1f5f9;border-radius:12px;padding:20px;">
           <div style="color:#64748b;font-size:12px;margin-bottom:8px;">👥 משתמשים</div>
-          <div style="font-size:14px;font-weight:600;color:#1e293b;">${g('sys_users')}</div>
+          <div style="font-size:14px;font-weight:600;color:#1e293b;">${escapeHtml(g('sys_users'))}</div>
         </div>
         <div style="background:#f1f5f9;border-radius:12px;padding:20px;">
           <div style="color:#64748b;font-size:12px;margin-bottom:8px;">📱 נייד</div>
-          <div style="font-size:14px;font-weight:600;color:#1e293b;">${g('mobile')}</div>
+          <div style="font-size:14px;font-weight:600;color:#1e293b;">${escapeHtml(g('mobile'))}</div>
         </div>
       </div>
 
       <div style="color:#94a3b8;font-size:11px;text-align:center;margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;">
-        מסמך זה הופק אוטומטית על בסיס השאלון שמילאת | ${date}
+        מסמך זה הופק אוטומטית על בסיס השאלון שמילאת | ${escapeHtml(date)}
       </div>
     </div>
   </div>`;
@@ -780,17 +872,18 @@ function buildPdfHtml() {
     sectionsHtml += `
       <div class="pdf-section-header" style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#1e3a5f,#1e40af);color:#fff;padding:16px 24px;border-radius:12px;margin-bottom:20px;margin-top:30px;page-break-before:auto;">
         <span style="font-size:22px;">${step.icon}</span>
-        <span style="font-size:17px;font-weight:700;">${step.title}</span>
+        <span style="font-size:17px;font-weight:700;">${escapeHtml(step.title)}</span>
       </div>
     `;
     step.questions.forEach(q => {
       const val = getVal(q.id);
       const isEmpty = !val;
+      // FIX: val is now escaped via escapeHtml — no raw injection into HTML
       sectionsHtml += `
         <div style="margin-bottom:18px;page-break-inside:avoid;">
-          <div style="font-weight:600;color:#334155;font-size:13px;margin-bottom:6px;">${q.label}</div>
+          <div style="font-weight:600;color:#334155;font-size:13px;margin-bottom:6px;">${escapeHtml(q.label)}</div>
           <div style="background:${isEmpty?'#fafafa':'#f8fafc'};border-right:4px solid ${isEmpty?'#e2e8f0':'#3b82f6'};padding:10px 16px;border-radius:0 8px 8px 0;color:${isEmpty?'#94a3b8':'#1e293b'};font-size:13px;line-height:1.7;${isEmpty?'font-style:italic;':''}white-space:pre-wrap;">
-            ${isEmpty ? '— לא מולא —' : val.replace(/</g,'&lt;')}
+            ${isEmpty ? '— לא מולא —' : escapeHtml(val)}
           </div>
         </div>
       `;
@@ -802,7 +895,7 @@ function buildPdfHtml() {
       <h3 style="color:#854d0e;margin-bottom:14px;font-size:16px;">⚠️ שאלות שלא מולאו (${unanswered.length})</h3>
       ${unanswered.map(u => `
         <div style="background:#fff;border-right:3px solid #fbbf24;padding:8px 12px;margin-bottom:8px;border-radius:0 6px 6px 0;font-size:13px;color:#92400e;">
-          <span style="font-weight:600;">${u.icon} ${u.step}:</span> ${u.question}
+          <span style="font-weight:600;">${escapeHtml(u.icon)} ${escapeHtml(u.step)}:</span> ${escapeHtml(u.question)}
         </div>
       `).join('')}
     </div>
@@ -811,7 +904,7 @@ function buildPdfHtml() {
   return `
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;700;800&display=swap');
-    * { 
+    * {
       font-family: 'Heebo', Arial, sans-serif !important;
       -webkit-font-feature-settings: 'liga' 0, 'calt' 0;
       font-feature-settings: 'liga' 0, 'calt' 0;
@@ -823,39 +916,39 @@ function buildPdfHtml() {
     }
   </style>
   <div style="direction:rtl;font-family:'Heebo',Arial,sans-serif;background:#fff;width:100%;">
-    
+
     <!-- COVER PAGE -->
     <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);padding:60px 50px;min-height:270mm;display:flex;flex-direction:column;justify-content:space-between;page-break-after:always;">
       <div>
         <div style="font-size:60px;margin-bottom:24px;">🗂️</div>
         <div style="color:#fff;font-size:34px;font-weight:800;margin-bottom:8px;">מסמך אפיון</div>
         <div style="color:#93c5fd;font-size:20px;margin-bottom:48px;">מערכת CRM לניהול רכש ויבוא</div>
-        
+
         <div style="background:rgba(255,255,255,0.08);border-radius:16px;padding:28px;border:1px solid rgba(255,255,255,0.15);">
           <div style="color:#60a5fa;font-size:12px;letter-spacing:2px;margin-bottom:16px;">פרטי לקוח</div>
           <div style="color:#94a3b8;font-size:13px;margin-bottom:4px;">עסק</div>
-          <div style="color:#fff;font-size:18px;font-weight:600;margin-bottom:16px;">${businessName}</div>
+          <div style="color:#fff;font-size:18px;font-weight:600;margin-bottom:16px;">${escapeHtml(businessName)}</div>
           <div style="color:#94a3b8;font-size:13px;margin-bottom:4px;">תאריך</div>
-          <div style="color:#fff;font-size:16px;">${date}</div>
+          <div style="color:#fff;font-size:16px;">${escapeHtml(date)}</div>
         </div>
       </div>
-      
+
       <div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
-          ${STEPS.map(s=>`<span style="background:rgba(59,130,246,0.2);border:1px solid rgba(59,130,246,0.4);color:#93c5fd;padding:5px 12px;border-radius:20px;font-size:11px;">${s.icon} ${s.title}</span>`).join('')}
+          ${STEPS.map(s=>`<span style="background:rgba(59,130,246,0.2);border:1px solid rgba(59,130,246,0.4);color:#93c5fd;padding:5px 12px;border-radius:20px;font-size:11px;">${s.icon} ${escapeHtml(s.title)}</span>`).join('')}
         </div>
-        <div style="color:#475569;font-size:12px;">הופק ע"י מערכת אפיון CRM אוטומטית | ${RECIPIENT_EMAIL}</div>
+        <div style="color:#475569;font-size:12px;">הופק ע"י מערכת אפיון CRM אוטומטית</div>
       </div>
     </div>
 
     <!-- STATS PAGE -->
     <div style="padding:40px 50px;page-break-after:always;">
       <div style="font-size:22px;font-weight:800;color:#1e293b;margin-bottom:24px;padding-bottom:12px;border-bottom:3px solid #e2e8f0;">📊 סיכום טכני</div>
-      
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;">
         <div style="background:#f1f5f9;border-radius:12px;padding:20px;text-align:center;">
           <div style="color:#64748b;font-size:12px;margin-bottom:8px;">זמן מילוי השאלון</div>
-          <div style="font-size:22px;font-weight:800;color:#1e3a5f;">${timeTaken}</div>
+          <div style="font-size:22px;font-weight:800;color:#1e3a5f;">${escapeHtml(timeTaken)}</div>
         </div>
         <div style="background:${unanswered.length>0?'#fef9c3':'#dcfce7'};border-radius:12px;padding:20px;text-align:center;">
           <div style="color:#64748b;font-size:12px;margin-bottom:8px;">שאלות לא מולאו</div>
@@ -867,7 +960,7 @@ function buildPdfHtml() {
         </div>
         <div style="background:#f1f5f9;border-radius:12px;padding:20px;text-align:center;">
           <div style="color:#64748b;font-size:12px;margin-bottom:8px;">תאריך מילוי</div>
-          <div style="font-size:16px;font-weight:700;color:#1e293b;">${date}</div>
+          <div style="font-size:16px;font-weight:700;color:#1e293b;">${escapeHtml(date)}</div>
         </div>
       </div>
 
@@ -875,7 +968,7 @@ function buildPdfHtml() {
         <div style="font-weight:700;color:#1e293b;margin-bottom:14px;font-size:15px;">🔍 אתגרים שעלו בשיחת ההיכרות:</div>
         ${KNOWN_INFO.challenges.map(c=>`
           <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px;font-size:13px;color:#374151;">
-            <span style="color:#3b82f6;margin-top:2px;">•</span><span>${c}</span>
+            <span style="color:#3b82f6;margin-top:2px;">•</span><span>${escapeHtml(c)}</span>
           </div>
         `).join('')}
       </div>
@@ -893,7 +986,7 @@ function buildPdfHtml() {
       <div style="font-size:22px;font-weight:800;color:#1e293b;margin-bottom:8px;padding-bottom:12px;border-bottom:3px solid #e2e8f0;">📋 תשובות מפורטות</div>
       ${sectionsHtml}
       <div style="color:#94a3b8;font-size:11px;text-align:center;margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0;">
-        מסמך זה הופק אוטומטית ע"י מערכת אפיון CRM | ${date}
+        מסמך זה הופק אוטומטית ע"י מערכת אפיון CRM | ${escapeHtml(date)}
       </div>
     </div>
   </div>`;
@@ -962,6 +1055,8 @@ async function pdfToBase64(blob) {
 
 // ════════════════════════════════════════════════════
 //  EMAIL VIA N8N WEBHOOK
+//  FIX: Added retry logic, timeout, secret header,
+//       and separate data/PDF payloads
 // ════════════════════════════════════════════════════
 async function sendToN8n() {
   setState({ emailStatus: 'sending' });
@@ -973,12 +1068,12 @@ async function sendToN8n() {
   let qaHtml = '';
   STEPS.forEach(step => {
     qaHtml += '<h3 style="color:#1e3a5f;margin:20px 0 10px;border-bottom:2px solid #e2e8f0;padding-bottom:6px;">'
-      + step.icon + ' ' + step.title + '</h3>';
+      + escapeHtml(step.icon) + ' ' + escapeHtml(step.title) + '</h3>';
     step.questions.forEach(q => {
       const v = state.answers[q.id];
-      const ans = Array.isArray(v) ? v.join(', ') : (v || '<em style="color:#94a3b8;">לא מולא</em>');
+      const ans = Array.isArray(v) ? escapeHtml(v.join(', ')) : (v ? escapeHtml(v) : '<em style="color:#94a3b8;">לא מולא</em>');
       qaHtml += '<div style="margin-bottom:14px;">'
-        + '<div style="font-weight:600;color:#334155;font-size:13px;margin-bottom:4px;">' + q.label + '</div>'
+        + '<div style="font-weight:600;color:#334155;font-size:13px;margin-bottom:4px;">' + escapeHtml(q.label) + '</div>'
         + '<div style="background:#f8fafc;border-right:3px solid #2563eb;padding:8px 12px;border-radius:0 6px 6px 0;font-size:13px;color:#1e293b;">' + ans + '</div>'
         + '</div>';
     });
@@ -1012,7 +1107,7 @@ async function sendToN8n() {
     console.warn('PDF generation failed:', e);
   }
 
-  // STEP 2: Send data payload to n8n (without PDF first, to ensure answers arrive)
+  // STEP 2: Build payload
   const dataPayload = {
     recipient: RECIPIENT_EMAIL,
     date,
@@ -1029,20 +1124,47 @@ async function sendToN8n() {
     orderFlow: getVal('order_flow') || 'לא צוין',
     openOrders: getVal('open_orders') || 'לא צוין',
     hasPdf: pdfBase64 !== null,
-    pdfBase64: pdfBase64   // included — n8n handles as attachment
+    pdfBase64: pdfBase64
   };
 
-  try {
-    const res = await fetch(N8N_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(dataPayload)
-    });
-    if (!res.ok) throw new Error('Status ' + res.status);
-    setState({ emailStatus: 'success' });
-  } catch (err) {
-    console.error('Webhook error:', err);
-    setState({ emailStatus: 'error' });
+  // FIX: Retry logic — up to 3 attempts with exponential backoff
+  const MAX_RETRIES = 3;
+  const TIMEOUT_MS = 30000; // 30 seconds timeout per attempt
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      // FIX: Added AbortController for request timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+      const res = await fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // FIX: Added secret header for basic webhook authentication
+          'X-Webhook-Secret': WEBHOOK_SECRET
+        },
+        body: JSON.stringify(dataPayload),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (!res.ok) throw new Error('Status ' + res.status);
+      setState({ emailStatus: 'success' });
+      return; // success — exit retry loop
+    } catch (err) {
+      console.warn('Webhook attempt ' + attempt + ' failed:', err.message || err);
+      if (attempt < MAX_RETRIES) {
+        // FIX: Exponential backoff: 2s, 4s before next attempt
+        await new Promise(r => setTimeout(r, attempt * 2000));
+      } else {
+        // FIX: Distinguish CORS/network errors from server errors for better diagnostics
+        const isCors = err instanceof TypeError && err.message.includes('fetch');
+        const isTimeout = err.name === 'AbortError';
+        console.error('Webhook failed after ' + MAX_RETRIES + ' attempts. CORS:', isCors, 'Timeout:', isTimeout);
+        setState({ emailStatus: 'error' });
+      }
+    }
   }
 }
 
@@ -1106,7 +1228,7 @@ function renderIntro() {
     ${KNOWN_INFO.challenges.map((c,i)=>`
       <div class="challenge-item" style="animation:fadeInUp 0.3s ease ${0.04*i}s both;">
         <div class="challenge-dot"></div>
-        <span style="color:var(--slate-700);font-size:13px;">${c}</span>
+        <span style="color:var(--slate-700);font-size:13px;">${escapeHtml(c)}</span>
       </div>
     `).join('')}
   </div>
@@ -1122,7 +1244,7 @@ function renderIntro() {
 
   <div class="glass" style="margin-bottom:24px;">
     <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--slate-400);margin-bottom:14px;">6 נושאים</div>
-    <div>${STEPS.map(s=>`<span class="topic-badge">${s.icon} ${s.title}</span>`).join('')}</div>
+    <div>${STEPS.map(s=>`<span class="topic-badge">${s.icon} ${escapeHtml(s.title)}</span>`).join('')}</div>
   </div>
 
   ${state.hasBackup ? `
@@ -1152,26 +1274,28 @@ function renderQuiz() {
     const val = state.answers[q.id];
     let field = '';
     if (q.type === 'text') {
-      field = `<input type="text" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="${q.placeholder||''}" oninput="setAnswer('${q.id}',this.value,true)">`;
+      // FIX: value attribute uses escapeHtml
+      field = `<input type="text" value="${escapeHtml(val||'')}" placeholder="${escapeHtml(q.placeholder||'')}" oninput="setAnswer('${q.id}',this.value,true)">`;
     } else if (q.type === 'textarea') {
-      field = `<textarea rows="4" placeholder="${q.placeholder||''}" oninput="setAnswer('${q.id}',this.value,true)">${val||''}</textarea>`;
+      // FIX: textarea content now uses escapeHtml to prevent XSS via localStorage restore
+      field = `<textarea rows="4" placeholder="${escapeHtml(q.placeholder||'')}" oninput="setAnswer('${q.id}',this.value,true)">${escapeHtml(val||'')}</textarea>`;
     } else if (q.type === 'select') {
       field = `<select onchange="setAnswer('${q.id}',this.value,true)">
         <option value="">-- בחר/י --</option>
-        ${q.options.map(o=>`<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')}
+        ${q.options.map(o=>`<option value="${escapeHtml(o)}" ${val===o?'selected':''}>${escapeHtml(o)}</option>`).join('')}
       </select>`;
     } else if (q.type === 'chips') {
       const sel = Array.isArray(val) ? val : [];
       field = `<div class="chips" data-chip-group="${q.id}">${q.options.map(o=>`
-        <button class="chip ${sel.includes(o)?'active':''}" data-chip-val="${o}" onclick="toggleChip('${q.id}','${o}')">${sel.includes(o)?'✓ ':''}${o}</button>
+        <button class="chip ${sel.includes(o)?'active':''}" data-chip-val="${escapeHtml(o)}" onclick="toggleChip('${q.id}','${escapeHtml(o)}')">${sel.includes(o)?'✓ ':''}${escapeHtml(o)}</button>
       `).join('')}</div>`;
     }
-    return `<div class="q-item"><label class="label">${q.label}</label>${field}</div>`;
+    return `<div class="q-item"><label class="label">${escapeHtml(q.label)}</label>${field}</div>`;
   }).join('');
 
   const pills = STEPS.map((s,i)=>`
-    <div class="pill ${i<state.step?'done':i===state.step?'active':'todo'}" 
-      ${i<state.step?`onclick="goStep(${i})"`:''}>${i<state.step?'✓':s.icon} ${s.title}</div>
+    <div class="pill ${i<state.step?'done':i===state.step?'active':'todo'}"
+      ${i<state.step?`onclick="goStep(${i})"`:''}>${i<state.step?'✓':s.icon} ${escapeHtml(s.title)}</div>
   `).join('');
 
   return `
@@ -1182,7 +1306,7 @@ function renderQuiz() {
   <div class="card">
     <div class="card-header">
       <div style="display:flex;align-items:center;justify-content:space-between;">
-        <h2 style="color:var(--navy);">${step.icon}&nbsp; ${step.title}</h2>
+        <h2 style="color:var(--navy);">${step.icon}&nbsp; ${escapeHtml(step.title)}</h2>
         <span style="font-size:12px;font-weight:500;color:var(--slate-400);background:var(--surface-2);padding:4px 10px;border-radius:100px;border:1px solid var(--border);">${state.step+1} / ${STEPS.length}</span>
       </div>
     </div>
@@ -1212,13 +1336,13 @@ function renderResult() {
   } else if (state.emailStatus === 'success') {
     statusHtml = `<div class="status-box status-success"><span>✓</span><span>נשלח בהצלחה לאלישמע!</span></div>`;
   } else if (state.emailStatus === 'error') {
-    statusHtml = `<div class="status-box status-error"><span>⚠</span><div>לא הצלחנו לשלוח — PDF הורד למחשב שלך.<br><small style="opacity:0.7;">ודא שה-Webhook ב-n8n פעיל.</small></div></div>`;
+    statusHtml = `<div class="status-box status-error"><span>⚠</span><div>לא הצלחנו לשלוח — PDF הורד למחשב שלך.<br><small style="opacity:0.7;">בדוק חיבור אינטרנט. ה-PDF שמור אצלך ואפשר לשלוח ידנית.</small></div></div>`;
   }
 
   const unansweredHtml = unanswered.length > 0
     ? `<div class="unanswered-box">
         <div style="font-weight:700;color:#fbbf24;margin-bottom:10px;font-size:13px;">⚠ שאלות שלא מולאו (${unanswered.length})</div>
-        ${unanswered.map(u=>`<div class="unanswered-item">${u.icon} <strong>${u.step}:</strong> ${u.question}</div>`).join('')}
+        ${unanswered.map(u=>`<div class="unanswered-item">${escapeHtml(u.icon)} <strong>${escapeHtml(u.step)}:</strong> ${escapeHtml(u.question)}</div>`).join('')}
        </div>`
     : `<div class="all-answered">✓ &nbsp;כל השאלות מולאו!</div>`;
 
@@ -1235,11 +1359,11 @@ function renderResult() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
         <div class="stat-box">
           <div class="stat-label">זמן מילוי</div>
-          <div class="stat-value">${timeTaken}</div>
+          <div class="stat-value">${escapeHtml(timeTaken)}</div>
         </div>
         <div class="stat-box">
           <div class="stat-label">שאלות שנענו</div>
-          <div class="stat-value" style="color:${unanswered.length===0?'var(--emerald-400)':'#fbbf24'};">
+          <div class="stat-value" style="color:${unanswered.length===0?'var(--green)':'#fbbf24'};">
             ${answered}<span style="font-size:14px;font-weight:400;color:var(--slate-500);"> / ${totalQ}</span>
           </div>
         </div>
@@ -1268,15 +1392,21 @@ function startQuiz() {
   state.startTime = Date.now();
   setState({ screen: 'quiz', step: 0 });
 }
+
+// FIX: restoreBackup now restores the saved step (not always step 0)
 function restoreBackup() {
   const data = state._backupData;
   if (data) {
     state.answers = data.answers;
     state.startTime = data.startTime;
     state.hasBackup = false;
-    setState({ screen: 'quiz', step: 0 });
+    // FIX: restore the actual step that was saved, default to 0 if missing
+    const savedStep = (typeof data.step === 'number' && data.step >= 0 && data.step < STEPS.length)
+      ? data.step : 0;
+    setState({ screen: 'quiz', step: savedStep });
   }
 }
+
 function discardBackup() {
   clearBackup();
   state.hasBackup = false;
@@ -1307,15 +1437,14 @@ async function downloadPDF() {
   }
 }
 
-// Expose to global scope for inline event handlers
+// FIX: Expose only the minimum required functions to global scope
+// Removed: window.sendToN8n, window.setState (internal functions no longer exposed)
 window.startQuiz = startQuiz;
 window.restoreBackup = restoreBackup;
 window.discardBackup = discardBackup;
 window.goStep = goStep;
 window.finishQuiz = finishQuiz;
 window.downloadPDF = downloadPDF;
-window.sendToN8n = sendToN8n;
-window.setState = setState;
 window.setAnswer = setAnswer;
 window.toggleChip = toggleChip;
 window.clearBackup = clearBackup;
